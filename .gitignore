@@ -1,0 +1,31 @@
+# Arduino IDE
+*.bin
+*.elf
+*.hex
+*.map
+*.lst
+
+# Build artifacts
+build/
+*.o
+*.a
+
+# IDE files
+.vscode/
+.idea/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Config files with sensitive data
+config.h
+credentials.h
+secrets.h
+
+# Backup files
+*.bak
+*.backup
+*~
