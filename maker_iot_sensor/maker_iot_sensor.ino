@@ -246,7 +246,8 @@ void setup() {
     Serial.println("[INFO] Dispositivo configurado. Modo normal.");
     Serial.print("[INFO] Sede: ");
     Serial.println(config.sede_nombre);
-    displayMessage("Sede:", config.sede_nombre);
+    String sedeNormalizada = normalizarTexto(config.sede_nombre);
+    displayMessage("Sede:", sedeNormalizada.c_str());
     delay(2000);
 
     // Conectar a WiFi
@@ -750,7 +751,8 @@ void handleActivate() {
 
     server.send(200, "text/html", successHtml);
 
-    displayMessage("Activado!", sedeNombre.c_str());
+    String sedeNormalizada = normalizarTexto(sedeNombre.c_str());
+    displayMessage("Activado!", sedeNormalizada.c_str());
     setLEDColor(0, 255, 0);  // VERDE
     pixels.show();
 
@@ -978,6 +980,58 @@ void sendSensorData() {
 }
 
 // ============================================
+// NORMALIZACIÓN DE TEXTO (PARA DISPLAY OLED)
+// ============================================
+// Convierte caracteres UTF-8 con acentos a ASCII (sin acentos)
+// Necesario porque Adafruit_GFX solo soporta ASCII básico (0-127)
+String normalizarTexto(const char* texto) {
+  String resultado = "";
+  int len = strlen(texto);
+
+  for (int i = 0; i < len; i++) {
+    unsigned char c = (unsigned char)texto[i];
+
+    // Si es un byte de inicio UTF-8 (0xC3 para caracteres latinos)
+    if (c == 0xC3 && i + 1 < len) {
+      unsigned char siguiente = (unsigned char)texto[i + 1];
+      i++; // Saltar el siguiente byte ya que lo procesamos aquí
+
+      // Caracteres minúsculas con acentos
+      if (siguiente == 0xA1) resultado += 'a';      // á
+      else if (siguiente == 0xA9) resultado += 'e'; // é
+      else if (siguiente == 0xAD) resultado += 'i'; // í
+      else if (siguiente == 0xB3) resultado += 'o'; // ó
+      else if (siguiente == 0xBA) resultado += 'u'; // ú
+      else if (siguiente == 0xB1) resultado += 'n'; // ñ
+      else if (siguiente == 0xBC) resultado += 'u'; // ü
+      // Caracteres mayúsculas con acentos
+      else if (siguiente == 0x81) resultado += 'A'; // Á
+      else if (siguiente == 0x89) resultado += 'E'; // É
+      else if (siguiente == 0x8D) resultado += 'I'; // Í
+      else if (siguiente == 0x93) resultado += 'O'; // Ó
+      else if (siguiente == 0x9A) resultado += 'U'; // Ú
+      else if (siguiente == 0x91) resultado += 'N'; // Ñ
+      else if (siguiente == 0x9C) resultado += 'U'; // Ü
+      else {
+        // Si no reconocemos el carácter, mantener el original
+        resultado += (char)c;
+        resultado += (char)siguiente;
+      }
+    }
+    // Caracteres ASCII normales (0-127)
+    else if (c < 128) {
+      resultado += (char)c;
+    }
+    // Otros bytes UTF-8 - intentar mantener o ignorar
+    else {
+      // Ignorar bytes UTF-8 no reconocidos para evitar caracteres raros
+    }
+  }
+
+  return resultado;
+}
+
+// ============================================
 // DISPLAY OLED
 // ============================================
 void displayMessage(const char* line1, const char* line2) {
@@ -1005,13 +1059,13 @@ void displaySensorData(float temp, float hum) {
   display.setCursor(0, 0);
   display.println("Red Maker Misiones");
 
-  // Línea 2: Nombre de la sede (capitalizado)
+  // Línea 2: Nombre de la sede (normalizado y capitalizado)
   display.setCursor(0, 10);
-  String sedeCapitalizada = String(config.sede_nombre);
-  if (sedeCapitalizada.length() > 0) {
-    sedeCapitalizada[0] = toupper(sedeCapitalizada[0]);
+  String sedeNormalizada = normalizarTexto(config.sede_nombre);
+  if (sedeNormalizada.length() > 0) {
+    sedeNormalizada[0] = toupper(sedeNormalizada[0]);
   }
-  display.println(sedeCapitalizada);
+  display.println(sedeNormalizada);
 
   // Temperatura (más grande)
   display.setTextSize(2);
